@@ -28,7 +28,7 @@ class BusinessesViewController: UIViewController, UITableViewDataSource, UITable
         searchBar = UISearchBar()
         searchBar.delegate = self
         searchBar.sizeToFit()
-        searchBar.placeholder = "Search restaurants"
+        searchBar.placeholder = "Restaurants"
         
         navigationItem.titleView = searchBar
         
@@ -93,7 +93,7 @@ class BusinessesViewController: UIViewController, UITableViewDataSource, UITable
         filteredData = searchText.isEmpty ? businesses : businesses.filter{ (item: Business) -> Bool in
             return item.name?.range(of: searchText, options: .caseInsensitive, range: nil, locale: nil) != nil
         }
-        //=============================================================        
+        //=============================================================
         tableView.reloadData()
     }
     
@@ -103,7 +103,7 @@ class BusinessesViewController: UIViewController, UITableViewDataSource, UITable
     }
     
     func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
-       print("Search Bar cancel button was clicked")
+        print("Search Bar cancel button was clicked")
         self.searchBar.showsCancelButton = false
         self.searchBar.text = ""
         searchBar.resignFirstResponder()
@@ -130,15 +130,23 @@ class BusinessesViewController: UIViewController, UITableViewDataSource, UITable
  
     func filtersViewController(filtersViewController: FiltersViewController, didUpdateFilters filters: [String : AnyObject]) {
         let categories = filters["categories"] as? [String]
+        let dealsIsOn = filters["deals"] as? Bool
+        let distance = filters["distance"] as? Double
+        let sortMode = filters["sortMode"] as? YelpSortMode
  
-         Business.searchWithTerm(term: "Restaurants", sort: nil, categories: categories, deals: nil) { (businesses: [Business]?, error: Error?) -> Void in
+         Business.searchWithTerm(term: "Restaurants", sort: sortMode, categories: categories, deals: dealsIsOn) { (businesses: [Business]?, error: Error?) -> Void in
          self.businesses = businesses
+            // /*
+            self.filteredData = distance == nil ? self.businesses :self.businesses?.filter {
+                (item: Business) -> Bool in
+                let strArr = item.distance?.components(separatedBy: " ")
+                let dist = Double(strArr![0])
+                return dist! < distance!
+            }
+            // */
+            print("reloading table")
          self.tableView.reloadData()
-        
          }
- 
-        
-        
     }
     
 }

@@ -16,17 +16,41 @@ class FiltersViewController: UIViewController, UITableViewDataSource, UITableVie
 
     @IBOutlet weak var tableView: UITableView!
     
+    weak var delegate: FiltersViewControllerDelegate?
+    
     var categories: [[String:String]]!
     var switchStates: [Int:Bool] = [:]
+    var sections: [(String,[AnyObject])]!
     
-    weak var delegate: FiltersViewControllerDelegate?
+    var dealsIsOn = false
+    var selectedDistance: Double?
+    var selectedSort = YelpSortMode.bestMatched
+    var showAllDistances = false
+    var showAllSorts = false
+    
+    
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        categories = yelpCategories()
+        
         tableView.dataSource = self
         tableView.delegate = self
+        
+        tableView.rowHeight = UITableViewAutomaticDimension
+        tableView.estimatedRowHeight = 120
+        
+        categories = yelpCategories()
+        sections = [(String,[AnyObject])]()
+        let distances = [nil, 0.3, 1, 5, 10, 20]
+        let sortTypes = ["Best Matched", "Distance", "Highest Rated"]
+        sections.append( ("", ["Deals" as AnyObject]) )
+        sections.append(("Distances", distances as [AnyObject]))
+        sections.append(("Sort By", sortTypes as [AnyObject]))
+        sections.append(("Categories", categories as [AnyObject]))
+        
+        print(sections)
+        
     }
 
     override func didReceiveMemoryWarning() {
@@ -48,6 +72,9 @@ class FiltersViewController: UIViewController, UITableViewDataSource, UITableVie
         if selectedCategories.count > 0{
             filters["categories"] = selectedCategories as AnyObject?
         }
+        filters["deals"] = dealsIsOn as AnyObject
+        filters["distance"] = selectedDistance as AnyObject
+        filters["sortMode"] = selectedSort as AnyObject
         
         delegate?.filtersViewController?(filtersViewController: self, didUpdateFilters: filters )
     }
@@ -57,24 +84,148 @@ class FiltersViewController: UIViewController, UITableViewDataSource, UITableVie
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return categories.count
+        let numberOfRows = sections[section].1.count
+        
+        switch section {
+        case 0: //Deals
+            return 1
+        case 1: //Distances
+            return showAllDistances ? numberOfRows : 1
+        case 2: //Sorts
+            return showAllSorts ? numberOfRows : 1
+        case 3: //Categories
+            return numberOfRows
+        default: //shouldn't happen
+            return numberOfRows
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        return sections[section].0
+    }
+    
+    func numberOfSections(in tableView: UITableView) -> Int {
+        
+        if sections != nil{
+        return sections.count
+        }
+        else {
+            return 1
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        if indexPath.section == 1{ //Distance
+            let distanceArray = sections[indexPath.section].1
+            
+            selectedDistance = distanceArray[indexPath.row] as? Double
+            showAllDistances = !showAllDistances
+          
+            tableView.reloadSections(IndexSet([indexPath.section]), with: .automatic)
+            
+
+        }
+        else if indexPath.section == 2{ //Sort by
+            if let sortMode = YelpSortMode(rawValue: indexPath.row){
+            selectedSort = sortMode
+            }
+            else {
+                selectedSort = YelpSortMode.bestMatched
+            }
+            showAllSorts = !showAllSorts
+            tableView.reloadSections(IndexSet([indexPath.section]), with: .automatic)
+        }
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "SwitchCell", for: indexPath) as! SwitchCell
+    /*let cell = tableView.dequeueReusableCell(withIdentifier: "SwitchCell", for: indexPath) as! SwitchCell
         
         cell.switchLabel.text = categories[indexPath.row]["name"]
         cell.delegate = self
         
         cell.onSwitch.isOn = switchStates[indexPath.row] ?? false
         
-        return cell
+        return cell */
+ 
+        let sectionIndex = indexPath.section
+        
+        switch sectionIndex{
+        case 0: //Deals
+            let cell = tableView.dequeueReusableCell(withIdentifier: "SwitchCell", for: indexPath) as! SwitchCell
+            cell.switchLabel.text = "Deals"
+            cell.delegate = self
+            cell.onSwitch.isOn = dealsIsOn
+            return cell
+            
+        case 1: //Distance
+            let cell = tableView.dequeueReusableCell(withIdentifier: "ButtonCell", for: indexPath) as! ButtonCell
+            // cell.switchLabel.text = "\(sections[sectionIndex].1[indexPath.row])"
+//            cell.delegate = self
+            if !showAllDistances{
+                if selectedDistance == nil{
+                    cell.label.text = "Auto"
+                }
+                else {
+                    cell.label.text = "\(selectedDistance!) mi" as String!
+                }
+            } else {
+             //   print("showAllDistances is false, so I'm about to label the 5 distance rows")
+                if let label = sections[sectionIndex].1[indexPath.row] as? Double{
+               //     print("label == \(label)")
+                    cell.label.text = "\(label) mi"
+                } else{
+              //      print("selected Distance should be NIL, double check: == \(selectedDistance)")
+                    cell.label.text = "Auto"
+                }
+            }
+            return cell
+            
+        case 2: //Sort by
+            let cell = tableView.dequeueReusableCell(withIdentifier: "ButtonCell", for: indexPath) as! ButtonCell
+            print("cell: \(sections[sectionIndex].1[indexPath.row])")
+            let sectionString = "\(sections[sectionIndex].1[indexPath.row])" as String!
+            print("showAllSorts == \(showAllSorts)")
+            if !showAllSorts{
+                //Showing only one sort option
+                let selectedSortStr = "\(sections[sectionIndex].1[selectedSort.hashValue])"
+                cell.label.text = selectedSortStr
+            } else {
+                //Showing all sort options
+                cell.label.text = sectionString
+            }
+            return cell
+            
+        case 3: //Categories
+            let cell = tableView.dequeueReusableCell(withIdentifier: "SwitchCell", for: indexPath) as! SwitchCell
+            cell.delegate = self
+            cell.switchLabel.text = categories[indexPath.row]["name"]
+
+            cell.onSwitch.isOn = switchStates[indexPath.row] ?? false
+            
+            return cell
+            
+        default: //This shouldn't happen
+            let cell = tableView.dequeueReusableCell(withIdentifier: "SwitchCell", for: indexPath) as! SwitchCell
+            return cell
+        }
+    
     }
     
     func switchCell(switchCell: SwitchCell, didChangeValue value: Bool) {
         let indexPath = tableView.indexPath(for: switchCell)
-        print("filters view controller got the switch event")
-        switchStates[(indexPath?.row)!] = value
+     //   print("filters view controller got the switch event")
+       // switchStates[(indexPath?.row)!] = value
+        
+        if indexPath?.section == 0{
+            print("clicked deals switch")
+            dealsIsOn = value
+        }
+        else if indexPath?.section == 3{
+            print("clicked categories switch")
+            switchStates[(indexPath?.row)!] = value
+        }
+        
+        
     }
     
     func yelpCategories()->[[String:String]]{
