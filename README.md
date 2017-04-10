@@ -44,10 +44,12 @@ Please list two areas of the assignment you'd like to **discuss further with you
 Here's a walkthrough of implemented user stories:
 
 Yelp V1
+
 <img src='http://i.imgur.com/ruc3sdW.gif' title='Yelp V1' width='' alt='Video Walkthrough' />
 
 Yelp V2
-<img src='http://i.imgur.com/toxffUq.gif' title='Yelp V2 width='' alt='Video Walkthrough' />
+
+<img src='http://i.imgur.com/toxffUq.gif' title='Yelp V2' width='' alt='Video Walkthrough' />
 GIF created with [LiceCap](http://www.cockos.com/licecap/).
 
 ## Notes
